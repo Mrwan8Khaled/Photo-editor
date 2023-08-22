@@ -17,7 +17,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d')
 
 function resetvalue() {
-    img.style.filter = 'none';
+    ctx.filter = 'none';
     saturate.value = "100";
     contrast.value = "100";
     brightness.value = "100";
@@ -25,6 +25,7 @@ function resetvalue() {
     grayscale.value = "0";
     blur.value = "0";
     hueRotate.value = "0";
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
 }
 
 window.onload = function () {
