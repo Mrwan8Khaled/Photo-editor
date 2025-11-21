@@ -1,60 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Image Editor</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PS — Image Editor</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <div class="img">
-            <div class="img-box">
-                <img id="img" src="" alt="">
-                <canvas id="canvas"></canvas>
-            </div>
-            <div class="upload">
-                <label for="upload">Upload</label>
-                <input type="file" id="upload">
-            </div>
-        </div>
-        <div class="filters">
-            <ul>
-                <li>
-                    <label for="saturate">Saturate</label>
-                    <input type="range" id="saturate" min="0" max="200" value="100">
-                </li>
-                <li>
-                    <label for="contrast">Contrast</label>
-                    <input type="range" id="contrast" min="0" max="200" value="100">
-                </li>
-                <li>
-                    <label for="brightness">Brightness</label>
-                    <input type="range" id="brightness" min="0" max="200" value="100">
-                </li>
-                <li>
-                    <label for="sepia">Sepia</label>
-                    <input type="range" id="sepia" min="0" max="200" value="0">
-                </li>
-                <li>
-                    <label for="grayscale">Grayscale</label>
-                    <input type="range" id="grayscale" step="0.1" min="0" max="1" value="0">
-                </li>
-                <li>
-                    <label for="blur">Blur</label>
-                    <input type="range" id="blur" step="0.1" min="0" max="10" value="0">
-                </li>
-                <li>
-                    <label for="hue-rotate">Hue Rotate</label>
-                    <input type="range" id="hue-rotate" min="0" max="350" value="0">
-                </li>
-                <li>
-                    <a href="#" download="Image" id="download">Download</a>
-                    <span onclick="resetvalue()">Reset</span>
-                </li>
-            </ul>
-        </div>
+  <header class="top">
+    <h1>PS Edit</h1>
+    <div class="actions">
+      <label class="btn upload-btn" for="uploadInput">Upload</label>
+      <button class="btn" id="webcamBtn">Webcam</button>
+      <button class="btn" id="resetAll">Reset (R)</button>
+      <button class="btn" id="downloadBtn">Download (D)</button>
+      <select id="formatSelect" title="Export format">
+        <option value="image/png">PNG</option>
+        <option value="image/jpeg">JPG</option>
+      </select>
+      <input id="qualityRange" type="range" min="0.1" max="1" step="0.05" value="0.92" title="JPEG quality" />
     </div>
-    <script src="main.js"></script>
+  </header>
+
+  <input type="file" id="uploadInput" accept="image/*" hidden />
+
+  <main class="container">
+    <section class="editor">
+      <div class="canvas-wrap" tabindex="0" aria-label="Image canvas">
+        <canvas id="mainCanvas"></canvas>
+        <div id="overlayCrop" class="crop-overlay hidden" aria-hidden="true"></div>
+      </div>
+      <div class="toolbar">
+        <button class="tool" id="cropBtn">Crop</button>
+        <button class="tool" id="rotate90Btn">Rotate 90°</button>
+        <button class="tool" id="flipHBtn">Flip H</button>
+        <button class="tool" id="flipVBtn">Flip V</button>
+        <button class="tool" id="undoBtn">Undo (Z)</button>
+        <button class="tool" id="redoBtn">Redo (Y)</button>
+      </div>
+    </section>
+
+    <aside class="controls" aria-label="Editor controls">
+      <h2>Filters</h2>
+      <div class="filter-row"><label>Saturate <span id="saturateVal">100%</span></label><input id="saturate" type="range" min="0" max="300" value="100" /></div>
+      <div class="filter-row"><label>Contrast <span id="contrastVal">100%</span></label><input id="contrast" type="range" min="0" max="300" value="100" /></div>
+      <div class="filter-row"><label>Brightness <span id="brightnessVal">100%</span></label><input id="brightness" type="range" min="0" max="300" value="100" /></div>
+      <div class="filter-row"><label>Sepia <span id="sepiaVal">0%</span></label><input id="sepia" type="range" min="0" max="100" value="0" /></div>
+      <div class="filter-row"><label>Grayscale <span id="grayscaleVal">0%</span></label><input id="grayscale" type="range" min="0" max="100" value="0" /></div>
+      <div class="filter-row"><label>Blur <span id="blurVal">0px</span></label><input id="blur" type="range" min="0" max="10" step="0.1" value="0" /></div>
+      <div class="filter-row"><label>Hue <span id="hueVal">0°</span></label><input id="hue-rotate" type="range" min="0" max="360" value="0" /></div>
+      <div class="filter-row"><label>Exposure <span id="exposureVal">0</span></label><input id="exposure" type="range" min="-1" max="1" step="0.05" value="0" /></div>
+
+      <h3>Presets</h3>
+      <div class="presets">
+        <button class="preset" data-preset="vintage">Vintage</button>
+        <button class="preset" data-preset="cinematic">Cinematic</button>
+        <button class="preset" data-preset="bw">B/W</button>
+        <button class="preset" id="savePresetBtn">Save Preset</button>
+      </div>
+
+      <h3>Crop & Transform</h3>
+      <div class="crop-controls hidden" id="cropControls">
+        <label>Aspect
+          <select id="aspectSelect">
+            <option value="free">Free</option>
+            <option value="1">1:1</option>
+            <option value="16/9">16:9</option>
+            <option value="4/3">4:3</option>
+          </select>
+        </label>
+        <button id="applyCrop">Apply</button>
+        <button id="cancelCrop">Cancel</button>
+      </div>
+
+      <h3>History</h3>
+      <div id="historyInfo">0 / 0</div>
+
+      <hr />
+      <div class="extras">
+        <label class="drop-target" for="uploadInput">Drag & Drop or Click to Upload</label>
+        <small>Tip: Press <kbd>Z</kbd> to undo, <kbd>Y</kbd> to redo.</small>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">Made with ❤️ by Aero — press <kbd>R</kbd> to reset</footer>
+
+  <script src="main.js" defer></script>
 </body>
 </html>
