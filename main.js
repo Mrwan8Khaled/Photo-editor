@@ -1,73 +1,39 @@
-let saturate = document.getElementById("saturate");
-let contrast = document.getElementById("contrast");
-let brightness = document.getElementById("brightness");
-let sepia = document.getElementById("sepia");
-let grayscale = document.getElementById("grayscale");
-let blur = document.getElementById("blur");
-let hueRotate = document.getElementById("hue-rotate");
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let img = new Image();
+let state = {
+  scale:1, rotate:0, flipX:false, flipY:false,
+  filters: {
+    saturate:100, contrast:100, brightness:100, sepia:0, grayscale:0, blur:0, 'hue-rotate':0, exposure:0
+  }
+};
 
-let upload = document.getElementById("upload");
-let download = document.getElementById("download");
-let img = document.getElementById("img");
-
-let reset = document.querySelector('span');
-let imgBox = document.querySelector('.img-box');
-
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext('2d')
-
-function resetvalue() {
-    ctx.filter = 'none';
-    saturate.value = "100";
-    contrast.value = "100";
-    brightness.value = "100";
-    sepia.value = "0";
-    grayscale.value = "0";
-    blur.value = "0";
-    hueRotate.value = "0";
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+// History stack
+const history = { stack:[], pos:-1, max:20 };
+function pushHistory() {
+  try{
+    if(history.pos < history.stack.length-1) history.stack = history.stack.slice(0, history.pos+1);
+    history.stack.push(canvas.toDataURL());
+    if(history.stack.length>history.max) history.stack.shift();
+    history.pos = history.stack.length-1;
+    updateHistoryInfo();
+  }catch(e){console.warn('history push failed',e)}
 }
+function undo(){ if(history.pos>0){ history.pos--; restoreFromDataURL(history.stack[history.pos]); updateHistoryInfo(); }}
+function redo(){ if(history.pos < history.stack.length-1){ history.pos++; restoreFromDataURL(history.stack[history.pos]); updateHistoryInfo(); }}
+function updateHistoryInfo(){ document.getElementById('historyInfo').textContent = `${history.pos+1} / ${history.stack.length}` }
+function restoreFromDataURL(dataURL){ const i = new Image(); i.onload = ()=>{ canvas.width = i.width; canvas.height = i.height; ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(i,0,0); }; i.src = dataURL }
 
-window.onload = function () {
-    download.style.display='none';
-    reset.style.display='none';
-    imgBox.style.display='none';
-}
+// Elements
+const uploadInput = document.getElementById('uploadInput');
+const dropTarget = document.querySelector('.drop-target');
+const downloadBtn = document.getElementById('downloadBtn');
+const formatSelect = document.getElementById('formatSelect');
+const qualityRange = document.getElementById('qualityRange');
 
-upload.onchange = function () {
-    resetvalue()
-    download.style.display='block';
-    reset.style.display='block';
-    imgBox.style.display='block';
-    let file = new FileReader();
-    file.readAsDataURL(upload.files[0]);
-    file.onload = function(){
-        img.src = file.result;
-    }
-    img.onload = function(){
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img,0,0,canvas.width,canvas.height);
-        img.style.display='none';
-    }
-}
+// Controls
+const controls = ['saturate','contrast','brightness','sepia','grayscale','blur','hue-rotate','exposure'];
+controls.forEach(k=>{ const el = document.getElementById(k); el?.addEventListener('input',()=>{ state.filters[k] = el.value; document.getElementById(k + 'Val').textContent = k.includes('hue') ? el.value + '°' : (k==='blur' ? el.value+'px' : el.value + (k==='exposure' ? '' : '%')); applyAllFiltersDebounced(); }); });
 
-let filters = document.querySelectorAll("ul li input");
-filters.forEach( filter =>{
-    filter.addEventListener('input',function () {
-        ctx.filter = `
-            saturate(${saturate.value}%)
-            contrast(${contrast.value}%)
-            brightness(${brightness.value}%)
-            sepia(${sepia.value}%)
-            grayscale(${grayscale.value})
-            blur(${blur.value}px)
-            hue-rotate(${hueRotate.value}deg)
-        `
-        ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    })
-})
-
-download.onclick = function(){
-    download.href = canvas.toDataURL();
-}
+// Apply filters
+function computeFilterString(){ const f = state.filters; return `saturate(${f.saturate}%) contrast(${f.contrast}%) brightness(${f.brightness}%) sepia(${f.sepia}%) grayscale(${f.grayscale}%) b
